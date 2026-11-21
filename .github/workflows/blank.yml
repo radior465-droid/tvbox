@@ -1,0 +1,57 @@
+name: Build Android APK
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Compilar APK
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Baixar código
+        uses: actions/checkout@v4
+
+      - name: Configurar Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Dar permissão ao Gradle
+        run: |
+          if [ -f "./gradlew" ]; then
+            chmod +x ./gradlew
+          fi
+
+      - name: Configurar Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Aceitar licenças Android
+        run: yes | sdkmanager --licenses || true
+
+      - name: Compilar APK
+        run: |
+          if [ -f "./gradlew" ]; then
+            ./gradlew assembleDebug --stacktrace
+          else
+            echo "ERRO: gradlew não encontrado na raiz do projeto."
+            exit 1
+          fi
+
+      - name: Procurar APK
+        run: |
+          echo "APKs encontrados:"
+          find . -type f -name "*.apk" -print
+
+      - name: Enviar APK para Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: FM-DX-Android-APK
+          path: |
+            **/build/outputs/apk/**/*.apk
+          if-no-files-found: error
+          retention-days: 30
